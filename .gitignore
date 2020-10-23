@@ -1,0 +1,5 @@
+/.*
+target/
+tfg.iml
+!/.gitignore
+!/.git
