@@ -8,4 +8,4 @@ TFG is built using maven, so if you want to try it, first clone the repository i
 `git clone https://github.com/fighur/tfg` then go to the project's root directory and type `mvn package`.
 You'll find the executable JAR `tfg.jar` under the `target` directory. 
 
-I would not recommended to run it inside a terminal.
+I would not recommended to run it inside a terminal (Double click the jar so it opens in a swing terminal).
