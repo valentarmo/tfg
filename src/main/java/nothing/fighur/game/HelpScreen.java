@@ -15,8 +15,8 @@ import com.googlecode.lanterna.terminal.*;
  */
 public class HelpScreen
 {
-    private Terminal terminal;
-    private TextGraphics painter;
+    private final Terminal terminal;
+    private final TextGraphics painter;
 
     /**
      * Get the painter and the terminal
@@ -34,8 +34,8 @@ public class HelpScreen
      */
     public void display() throws IOException
     {
-        TerminalSize tsize = terminal.getTerminalSize();
-        int trows = tsize.getRows();
+        TerminalSize terminalSize = terminal.getTerminalSize();
+        int trows = terminalSize.getRows();
 
         String row1 = "Action:          Player 1:          Player2:";
         String row2 = "Move Left:       a                  j";

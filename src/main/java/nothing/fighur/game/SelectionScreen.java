@@ -15,8 +15,8 @@ import nothing.fighur.game.characters.Character;
  */
 public class SelectionScreen
 {
-    private Terminal terminal;
-    private TextGraphics painter;
+    private final Terminal terminal;
+    private final TextGraphics painter;
     private final Character[] characters = new CharacterFactory().createAll();
     private int currentThumbnail = 0;
 
@@ -37,7 +37,7 @@ public class SelectionScreen
 
         terminal.clearScreen();
 
-        KeyStroke keyStroke = null;
+        KeyStroke keyStroke;
 
         boolean p1Done = false;
         boolean p2Done = false;
@@ -51,10 +51,10 @@ public class SelectionScreen
         currentThumbnail = 0;
 
         while ( !(p1Done && p2Done) ) {
-            /* Check whoose turn to choose is */
+            /* Check whose turn to choose is */
             if (!p1Done)
                 drawScreen(p1Help);
-            else if (!p2Done)
+            else
                 drawScreen(p2Help);
 
             /* Now listen to the current player decisions */
@@ -70,7 +70,7 @@ public class SelectionScreen
                             players[0] = new Player(characters[currentThumbnail], true);
                             p1Done = true;
                             currentThumbnail = 0;
-                        } else if ( !p2Done) {
+                        } else {
                             if (withAI)
                                 players[1] = new AI(characters[currentThumbnail], false);
                             else
@@ -103,24 +103,24 @@ public class SelectionScreen
     {
         terminal.clearScreen();
 
-        TerminalSize tsize = terminal.getTerminalSize();
-        int cols = tsize.getColumns();
-        int rows = tsize.getRows();
+        TerminalSize terminalSize = terminal.getTerminalSize();
+        int cols = terminalSize.getColumns();
+        int rows = terminalSize.getRows();
 
         String header = "Pick a Fighter";
-        String delimeter = "";
+        StringBuilder delimiter = new StringBuilder();
 
         for (int i = 0; i < cols; i++)
-            delimeter += "_";
+            delimiter.append("_");
 
-        int hdoff = header.length() / 2;
+        int headerDiff = header.length() / 2;
 
-        painter.putString(cols/2 - hdoff, 0, header);
+        painter.putString(cols/2 - headerDiff, 0, header);
 
         /* Draw thumbnails */
         int tcol = 1;
         int trow = 2;
-        // TODO: adapt to multiple rows
+
         for (int i = 0; i < characters.length; i++) {
             if (i == currentThumbnail) /* Highlight the thumbnail the player's at */
                 painter.setBackgroundColor(TextColor.ANSI.BLUE);
@@ -142,10 +142,8 @@ public class SelectionScreen
             tcol += 7;
         }
 
-        // TODO: draw one of the currently selected fighter's model
-
-        painter.putString(0, 1, delimeter);
-        painter.putString(0, rows-2, delimeter);
+        painter.putString(0, 1, delimiter.toString());
+        painter.putString(0, rows-2, delimiter.toString());
         painter.putString(0, rows-1, pStatus);
 
         terminal.flush();

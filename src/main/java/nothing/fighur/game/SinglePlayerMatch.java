@@ -2,9 +2,7 @@ package nothing.fighur.game;
 
 import java.io.IOException;
 
-import com.googlecode.lanterna.*;
 import com.googlecode.lanterna.graphics.*;
-import com.googlecode.lanterna.input.*;
 import com.googlecode.lanterna.terminal.*;
 
 public class SinglePlayerMatch extends Match
@@ -15,36 +13,13 @@ public class SinglePlayerMatch extends Match
     }
 
     @Override
-    protected void processKeyStrokes() throws IOException
+    protected void processKeyStrokes()
     {
         /* Player 1 -------------- */
-        KeyStroke keyStroke = terminal.pollInput();
-        if (keyStroke != null) {
-            KeyType keyType = keyStroke.getKeyType();
-            if (keyType == KeyType.Character) {
-                char key = keyStroke.getCharacter();
-                switch (key) {
-                case 'w':
-                    p1Jump();
-                    break;
-                case 'd':
-                    p1MoveRight();
-                    break;
-                case 'a':
-                    p1MoveLeft();
-                    break;
-                case 'v':
-                    player1.setStance(Player.Stance.Blocking);
-                    break;
-                case 'c':
-                    player1.setStance(Player.Stance.Attacking);
-                    newAttack(player1);
-                    break;
-                default:
-                    break;
-                }
-            }
-        }
+        if (p1jumping) p1Jump();
+        if (p1mright) p1MoveRight();
+        if (p1mleft) p1MoveLeft();
+        if (player1.isAttacking()) newAttack(player1);
 
         /* AI ----------------- */
         AI tmp = (AI) player2;

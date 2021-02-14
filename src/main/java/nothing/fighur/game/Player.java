@@ -7,7 +7,7 @@ import nothing.fighur.game.characters.Character;
  */
 public class Player
 {
-    private Character fighter;
+    private final Character fighter;
     private int life;
     private boolean isBlocking = false;
     private boolean isAttacking = false;

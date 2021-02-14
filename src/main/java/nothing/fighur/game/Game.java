@@ -32,11 +32,10 @@ public class Game
             terminal.setCursorVisible(false);
             terminal.clearScreen();
 
-            KeyStroke keyStroke = null;
-            int noptions = options.length;
+            KeyStroke keyStroke;
+            int numberOfOptions = options.length;
 
             while (true) {
-                // TODO: check for small sizes
                 terminal.clearScreen();
                 displayMenu();
                 terminal.flush();
@@ -51,46 +50,52 @@ public class Game
                             currentOption--;
                         break;
                     case ArrowDown:
-                        if (currentOption < noptions-1)
+                        if (currentOption < numberOfOptions-1)
                             currentOption++;
                         break;
-                    case Enter: // TODO: Move to its own method
+                    case Enter:
                         String option = options[currentOption];
-                        if (option.equals("MULTIPLAYER")) {
-                            SelectionScreen sscreen
-                                = new SelectionScreen(terminal, painter);
-                            Player[] players = sscreen.display(false);
-                            if (players != null) {
-                                Player p1 = players[0];
-                                Player p2 = players[1];
-                                Match match
-                                    = new Match(terminal, painter, p1, p2);
-                                match.begin();
+                        switch (option) {
+                            case "MULTIPLAYER": {
+                                SelectionScreen selectionScreen
+                                        = new SelectionScreen(terminal, painter);
+                                Player[] players = selectionScreen.display(false);
+                                if (players != null) {
+                                    Player p1 = players[0];
+                                    Player p2 = players[1];
+                                    Match match
+                                            = new Match(terminal, painter, p1, p2);
+                                    match.begin();
+                                }
+                                break;
                             }
-                        } else if (option.equals("SINGLE PLAYER")) {
-                            SelectionScreen sscreen
-                                = new SelectionScreen(terminal, painter);
-                            Player[] players = sscreen.display(true);
-                            if (players != null) {
-                                Player p1 = players[0];
-                                AI ai = (AI) players[1];
-                                Match match
-                                    = new SinglePlayerMatch(terminal, painter, p1, ai);
-                                match.begin();
+                            case "SINGLE PLAYER": {
+                                SelectionScreen selectionScreen
+                                        = new SelectionScreen(terminal, painter);
+                                Player[] players = selectionScreen.display(true);
+                                if (players != null) {
+                                    Player p1 = players[0];
+                                    AI ai = (AI) players[1];
+                                    Match match
+                                            = new SinglePlayerMatch(terminal, painter, p1, ai);
+                                    match.begin();
+                                }
+                                break;
                             }
-                        } else if (option.equals("HELP")) {
-                            HelpScreen hscreen
-                                = new HelpScreen(terminal, painter);
-                            hscreen.display();
-                        } else
-                            return;
+                            case "HELP":
+                                HelpScreen helpScreen
+                                        = new HelpScreen(terminal, painter);
+                                helpScreen.display();
+                                break;
+                            default:
+                                return;
+                        }
                         break;
                     default:
                         break;
                 }
             }
         } catch (Exception e) {
-            // TODO: Refine Exception handling
             e.printStackTrace();
         } finally {
             try {
@@ -104,13 +109,12 @@ public class Game
 
     /**
      * Create the main menu
-     * @throws IOException
      */
     private void displayMenu() throws IOException
     {
-        TerminalSize tsize = terminal.getTerminalSize();
-        int col = tsize.getColumns() / 2;
-        int row = tsize.getRows() / 2;
+        TerminalSize terminalSize = terminal.getTerminalSize();
+        int col = terminalSize.getColumns() / 2;
+        int row = terminalSize.getRows() / 2;
 
         painter.putString(col - 2, row - 2, "TFG");
 
@@ -135,7 +139,7 @@ public class Game
         try {
             return new DefaultTerminalFactory().createTerminal();
         } catch (IOException e) {
-            System.err.println("tfg coudn't initialize");
+            System.err.println("tfg couldn't initialize");
             e.printStackTrace();
             System.exit(1);
             return null;
@@ -152,7 +156,7 @@ public class Game
         try {
             return terminal.newTextGraphics();
         } catch (IOException e) {
-            System.err.println("tfg coudn't initialize");
+            System.err.println("tfg couldn't initialize");
             e.printStackTrace();
             System.exit(2);
             return null;

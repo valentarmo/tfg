@@ -1,26 +1,28 @@
 package nothing.fighur.game;
 
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.googlecode.lanterna.*;
 import com.googlecode.lanterna.graphics.*;
-import com.googlecode.lanterna.input.*;
 import com.googlecode.lanterna.terminal.*;
 
 import nothing.fighur.game.characters.*;
 import nothing.fighur.game.characters.Character;
 
+
 /**
  * Match between two players
  */
-public class Match
+public class Match implements KeyListener
 {
-    private TextGraphics painter;
+    private final TextGraphics painter;
     private final int timeLimit = 240000;
-    private final int jumpSpeed = 150; /* AKA gravity */
-    /* May move this to the Attack class to make attacks more dynamic */
-    private final int attackSpeed = 150;
+    private final int jumpSpeed = 100; /* AKA gravity */
+    private final int attackSpeed = 100;
     private long startingTime;
     private final int maxJumpHeight = 8;
     /* Top Left corner of the players' characters */
@@ -29,16 +31,25 @@ public class Match
     private int p2top;
     private int p2left;
     /* ----------------------------------------- */
-    /* This is used because there are some asynchronous operations */
+
     private final CopyOnWriteArrayList<Attack> attacks = new CopyOnWriteArrayList<>();
-    private TerminalPosition[][] p1hitbox = new TerminalPosition[5][5];
-    private TerminalPosition[][] p2hitbox = new TerminalPosition[5][5];
+    private final TerminalPosition[][] p1hitbox = new TerminalPosition[5][5];
+    private final TerminalPosition[][] p2hitbox = new TerminalPosition[5][5];
     private char[][] screen;
-    /* Drawing the screen is expensive so should be limited */
 
     protected Player player1;
     protected Player player2;
     protected Terminal terminal;
+
+    protected boolean p1jumping = false;
+    protected boolean p1mright = false;
+    protected boolean p1mleft = false;
+
+    protected boolean p2jumping = false;
+    protected boolean p2mright = false;
+    protected boolean p2mleft = false;
+
+    private Component previousFocusOwner;
 
     /**
      * Create a new match
@@ -58,10 +69,9 @@ public class Match
      */
     public void begin() throws Exception
     {
-        // TODO: Stop clearing the screen all the time
         /* set initial positions */
         TerminalSize tsize = terminal.getTerminalSize();
-        int trows = tsize.getRows(); // TODO: Make these parameters
+        int trows = tsize.getRows();
         int tcols = tsize.getColumns();
 
         p1top = trows-7;
@@ -75,6 +85,8 @@ public class Match
 
         terminal.clearScreen();
         drawCountDown();
+
+        addListener();
 
         startingTime = System.currentTimeMillis();
         long timeLeft = 0;
@@ -92,16 +104,17 @@ public class Match
             }
 
             mapRing();
-            mapFighters();
             mapAttacks();
+            mapFighters();
 
-            draw(); // TODO: draw only when necessary
+            draw();
             terminal.flush();
 
             processKeyStrokes();
             checkHits();
 
             timeLeft = System.currentTimeMillis() - startingTime;
+            Thread.sleep(100);
         }
 
         /* The last hit won't be reflected in the health bar when the loop ends
@@ -131,73 +144,121 @@ public class Match
             painter.putString(mcol-p2w.length()/2, mrow, p2w);
         }
         terminal.flush();
-        /* And wait a moment before going back
-        to the main menu */
+        removeListener();
         Thread.sleep(5000);
     }
 
-    /**
-     * This method reads the keyboard in an asynchronous manner.
-     * Now it has a problem I didn't anticipate which is that
-     * if you hold a key pressed, it won't read other keys that
-     * may be pressed afterwards, which makes all the sense in
-     * the world, but that currently is the biggest problem with
-     * game because if one of the player holds say his/her attack
-     * key, the other player won't be able to do anything.
-     *
-     * @param tcols Number of columns of the terminal
-     */
-    protected void processKeyStrokes() throws IOException
-    {
-        // TODO: Maybe move control settings to a file
-        KeyStroke keyStroke = terminal.pollInput();
-        if (keyStroke != null) {
-            KeyType keyType = keyStroke.getKeyType();
-            if (keyType == KeyType.Character) {
-                char key = keyStroke.getCharacter();
-                switch (key) {
-                /* Player 1 -------------- */
-                case 'w':
-                    p1Jump();
-                    break;
-                case 'd':
-                    p1MoveRight();
-                    break;
-                case 'a':
-                    p1MoveLeft();
-                    break;
-                case 'v':
-                    player1.setStance(Player.Stance.Blocking);
-                    break;
-                case 'c':
-                    player1.setStance(Player.Stance.Attacking);
-                    newAttack(player1);
-                    break;
-                /* ----------------------- */
+    protected void addListener() {
+        previousFocusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        final Frame terminalFrame = ((Frame) terminal);
+        terminalFrame.requestFocusInWindow();
+        terminalFrame.addKeyListener(this);
+    }
 
-                /* Player 2 --------------- */
-                case 'i':
-                    p2Jump();
-                    break;
-                case 'l':
-                    p2MoveRight();
-                    break;
-                case 'j':
-                    p2MoveLeft();
-                    break;
-                case 'b':
-                    player2.setStance(Player.Stance.Blocking);
-                    break;
-                case 'n':
-                    player2.setStance(Player.Stance.Attacking);
-                    newAttack(player2);
-                    break;
-                /* ---------------------- */
-                default:
-                    break;
-                }
-            }
+    protected void removeListener() {
+        final Frame terminalFrame = ((Frame) terminal);
+        terminalFrame.removeKeyListener(this);
+        previousFocusOwner.requestFocusInWindow();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) { }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        char key = e.getKeyChar();
+        switch (key) {
+            /* Player 1 -------------- */
+            case 'w':
+                if (!p1jumping) p1jumping = true;
+                break;
+            case 'd':
+                if (!p1mright) p1mright = true;
+                break;
+            case 'a':
+                if (!p1mleft) p1mleft = true;
+                break;
+            case 'v':
+                player1.setStance(Player.Stance.Blocking);
+                break;
+            case 'c':
+                player1.setStance(Player.Stance.Attacking);
+                break;
+            /* ----------------------- */
+
+            /* Player 2 --------------- */
+            case 'i':
+                if (!p2jumping) p2jumping = true;
+                break;
+            case 'l':
+                if (!p2mright) p2mright = true;
+                break;
+            case 'j':
+                if (!p2mleft) p2mleft = true;
+                break;
+            case 'b':
+                player2.setStance(Player.Stance.Blocking);
+                break;
+            case 'n':
+                player2.setStance(Player.Stance.Attacking);
+                break;
+            /* ---------------------- */
+            default:
+                break;
         }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+        char key = e.getKeyChar();
+        switch (key) {
+            /* Player 1 -------------- */
+            case 'w':
+                if (p1jumping) p1jumping = false;
+                break;
+            case 'd':
+                if (p1mright) p1mright = false;
+                break;
+            case 'a':
+                if (p1mleft) p1mleft = false;
+                break;
+            case 'v':
+            case 'c':
+                player1.setStance(Player.Stance.Standing);
+                break;
+            /* ----------------------- */
+
+            /* Player 2 --------------- */
+            case 'i':
+                if (p2jumping) p2jumping = false;
+                break;
+            case 'l':
+                if (p2mright) p2mright = false;
+                break;
+            case 'j':
+                if (p2mleft) p2mleft = false;
+                break;
+            case 'b':
+            case 'n':
+                player2.setStance(Player.Stance.Standing);
+                break;
+            /* ---------------------- */
+            default:
+                break;
+        }
+    }
+
+    protected void processKeyStrokes()
+    {
+        if (p1jumping) p1Jump();
+        if (p1mright) p1MoveRight();
+        if (p1mleft) p1MoveLeft();
+        if (player1.isAttacking()) newAttack(player1);
+
+        if (p2jumping) p2Jump();
+        if (p2mright) p2MoveRight();
+        if (p2mleft) p2MoveLeft();
+        if (player2.isAttacking()) newAttack(player2);
     }
 
     protected void p1Jump() {
@@ -232,8 +293,11 @@ public class Match
         }
     }
 
-    protected void p2MoveRight() throws IOException {
-        int tcols = terminal.getTerminalSize().getColumns();
+    protected void p2MoveRight() {
+        int tcols = 80;
+        try {
+            tcols = terminal.getTerminalSize().getColumns();
+        } catch (IOException e) { }
         player2.setFacingDirection(true);
         player2.setStance(Player.Stance.Standing);
         if (p2left < tcols - 5) {
@@ -253,8 +317,11 @@ public class Match
         }
     }
 
-    protected void p1MoveRight() throws IOException {
-        int tcols = terminal.getTerminalSize().getColumns();
+    protected void p1MoveRight() {
+        int tcols = 80;
+        try {
+            tcols = terminal.getTerminalSize().getColumns();
+        } catch (IOException e) { }
         player1.setFacingDirection(true);
         player1.setStance(Player.Stance.Standing);
         if (p1left < tcols - 5) {
@@ -266,7 +333,6 @@ public class Match
 
     protected void drawCountDown() throws IOException, InterruptedException
     {
-        // TODO: Stop clearing the screen all the time
         String three1 = " ______ ";
         String three2 = "|____  |";
         String three3 = "  __|  |";
@@ -379,7 +445,7 @@ public class Match
      * This method is very important it maps
      * both fighters to the screen
      */
-    protected void mapFighters() throws IOException
+    protected void mapFighters()
     {
         Character p1Fighter = player1.getCharacter();
         Character p2Fighter = player2.getCharacter();
@@ -428,13 +494,6 @@ public class Match
      * the fighters should be drawn
      */
     protected void handleJump() {
-        /*
-         * I wasn't planning on allowing jumping at first, but then
-         * I changed my mind. D=
-         */
-
-        /* First we check if the height should be managed
-        i.e. check if the fighter is jumping */
         if (player1.isJumping()) {
             /* Time is very important here. With it we can tell
             when to change the height */
@@ -454,7 +513,7 @@ public class Match
                         player1.setIsFalling(true);
                     }
                 } else {
-                    /* Fighter goind down */
+                    /* Fighter going down */
                     if (currentJumpHeight > 0) {
                         p1top++;
                         p1MovedDown();
@@ -473,7 +532,7 @@ public class Match
         if (player2.isJumping()) {
             long currentTime = System.currentTimeMillis();
             long timeSinceLastMoved = player2.getTimeSinceJumpUpdate();
-            if (currentTime - timeSinceLastMoved > 150) {
+            if (currentTime - timeSinceLastMoved > jumpSpeed) {
                 int currentJumpHeight = player2.getJumpHeight();
                 if (!player2.isFalling()) {
                     if (currentJumpHeight < maxJumpHeight) {
@@ -507,7 +566,6 @@ public class Match
      */
     protected void mapAttacks() throws IOException
     {
-        /* Time again will be very important to update attacks */
         long currentTime = System.currentTimeMillis();
         int tcols = terminal.getTerminalSize().getColumns();
 
@@ -515,19 +573,18 @@ public class Match
             int arow = a.getRow();
             int acol = a.getColumn();
 
-            screen[arow][acol] = a.getShape();
-            long timeSinceLastMoved = a.getTimeSinceLastMoved();
-            if (currentTime - timeSinceLastMoved > attackSpeed) {
-                if (a.getDirection())
-                    a.setColumn(acol+1);
-                else
-                    a.setColumn(acol-1);
-                screen[arow][acol] = ' ';
-                a.setTimeSinceLastMoved(currentTime);
-            }
+            screen[arow][acol] = ' ';
+            if (a.getDirection())
+                a.setColumn(acol+1);
+            else
+                a.setColumn(acol-1);
+
             /* Check if the attack reached the end of the screen */
             if (a.getColumn() < 0 || a.getColumn() == tcols)
                 attacks.remove(a);
+            else
+                screen[arow][a.getColumn()] = a.getShape();
+            a.setTimeSinceLastMoved(currentTime);
         }
     }
 
@@ -650,7 +707,7 @@ public class Match
                 if (collision(a, p2hitbox)) {
                     if (!player2.isBlocking() || player2.facingDirection() == a.getDirection())
                         player2.reduceLife(); /* If not blocking or hit in the back */
-                    attacks.remove(a); /* The attack hit, it should dissapear */
+                    attacks.remove(a); /* The attack hit, it should disappear */
                 }
             } else { /* Now check if player 1 was hit */
                 if (collision(a, p1hitbox)) {
@@ -670,9 +727,9 @@ public class Match
         int attackRow = attack.getRow();
         int attackCol = attack.getColumn();
 
-        for (int i = 0; i < hitbox.length; i++)
+        for (TerminalPosition[] terminalPositions : hitbox)
             for (int j = 0; j < hitbox[0].length; j++)
-                if (hitbox[i][j].equals(attackCol, attackRow))
+                if (terminalPositions[j].equals(attackCol, attackRow))
                     return true;
         return false;
     }

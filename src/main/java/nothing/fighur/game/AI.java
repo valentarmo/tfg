@@ -5,12 +5,12 @@ import java.util.Random;
 import nothing.fighur.game.characters.Character;
 
 /**
- * A very primitive AI
+ * Not really AI
  */
 public class AI extends Player
 {
     private final Random mind = new Random(System.currentTimeMillis());
-    private int thinkingTime = 200; /* Move every 200 ms */
+    private final int thinkingTime = 200; /* Move every 200 ms */
     private long timeSinceLastMove = 0;
 
     /* It will have player 2's controls */
